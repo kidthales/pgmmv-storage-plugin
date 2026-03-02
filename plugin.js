@@ -31,7 +31,8 @@
           case 'parameter':
             return [];
           case 'internal':
-            return {};
+            // Internal data managed from storage file.
+            return null;
           case 'actionCommand':
             return [
               saveVariableActionCommand,
@@ -55,7 +56,9 @@
       },
       finalize: function () {},
       setParamValue: function (paramValue) {},
-      setInternal: function (data) {},
+      setInternal: function (data) {
+        // Do nothing; internal data set from storage file.
+      },
       call: function () {},
       update: function (delta) {
         // TODO
@@ -235,8 +238,143 @@
         }
       ]
     },
+    /** @type {import("type-fest").JsonValue} */
+    internalData = {},
     /** @type {boolean} */
-    isError = false;
+    isInternalDataLoaded = false,
+    /** @type {boolean} */
+    isError = false,
+    /** @type{() => {requestSave: () => void; update: () => void;}} */
+    createIO = function () {
+      // noinspection UnnecessaryLocalVariableJS
+      /** @type {{requestSave: () => void; update: () => void;}} */
+      var io = {
+          requestSave: function () {
+            isSaveRequested = true;
+          },
+          update: function () {
+            switch (currentState) {
+              case kInitState:
+                if (jsb.fileUtils.isFileExist(kStoragePath)) {
+                  jsbResult = jsb.fileUtils.getStringFromFile(kStoragePath);
+
+                  if (!cc.isString(jsbResult)) {
+                    // TODO
+                    isError = true;
+                    return;
+                  }
+
+                  try {
+                    internalData = JSON.parse(jsbResult);
+                  } catch (e) {
+                    // TODO
+                    isError = true;
+                    return;
+                  }
+
+                  if (!cc.isObject(internalData)) {
+                    // TODO
+                    isError = true;
+                    return;
+                  }
+                }
+
+                isInternalDataLoaded = true; // Load variable/switch action commands will stop blocking.
+                currentState = kReadyState;
+                break;
+              case kReadyState:
+                if (isSaveRequested) {
+                  isSaveRequested = false;
+
+                  try {
+                    json = JSON.stringify(internalData);
+                  } catch (e) {
+                    // TODO
+                    isError = true;
+                    return;
+                  }
+
+                  jsonSize = getStringByteLength(json); // Get byte length of our encoding (for comparison with file size).
+                  fileSize = jsb.fileUtils.getFileSize(kStoragePath);
+                  jsbResult = jsb.fileUtils.writeStringToFile(json, kStoragePath);
+
+                  if (!jsbResult) {
+                    // TODO
+                    isError = true;
+                    return;
+                  }
+
+                  currentState = kSaveState;
+                }
+
+                break;
+              case kSaveState:
+                // Polling for file write completion.
+                if (fileSize !== jsonSize) {
+                  // JSON encoding and previous file size does not match - we
+                  // can test for new file size to indicate write completion.
+                  if (jsonSize === jsb.fileUtils.getFileSize(kStoragePath)) {
+                    currentState = kReadyState;
+                  }
+                } else if (json === jsb.fileUtils.getStringFromFile(kStoragePath)) {
+                  // JSON encoding and previous file size matched so we need to
+                  // compare content directly to indicate write completion.
+                  currentState = kReadyState;
+                }
+
+                break;
+              default:
+                break;
+            }
+          }
+        },
+        /** @const */
+        kInitState = -1,
+        /** @const */
+        kReadyState = 0,
+        /** @const */
+        kSaveState = 1,
+        /** @const */
+        kStoragePath = Agtk.settings.projectPath + '/' + kStorageFilename,
+        /** @type {number} */
+        currentState = kInitState,
+        /** @type {boolean} */
+        isSaveRequested = false,
+        /** @type {string | boolean} */
+        jsbResult,
+        /** @type {string} */
+        json,
+        /** @type {number} */
+        fileSize,
+        /** @type {number} */
+        jsonSize,
+        /** @type {(string) => number} */
+        getStringByteLength = function (str) {
+          var s = str.length,
+            i = s - 1,
+            /** @type {number} */
+            code;
+
+          for (; i >= 0; --i) {
+            code = str.charCodeAt(i);
+
+            if (code > 0x7f && code <= 0x7ff) {
+              s++;
+            } else if (code > 0x7ff && code <= 0xffff) {
+              s += 2;
+            }
+
+            if (code >= 0xdc00 && code <= 0xdfff) {
+              // Trail surrogate.
+              i--;
+            }
+          }
+
+          return s;
+        };
+
+      return io;
+    };
 
   return plugin;
 })();
