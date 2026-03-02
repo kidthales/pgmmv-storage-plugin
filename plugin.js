@@ -34,6 +34,7 @@
             // Internal data managed from storage file.
             return null;
           case 'actionCommand':
+            // Do not change the order!
             return [
               saveVariableActionCommand,
               loadVariableActionCommand,
@@ -81,7 +82,7 @@
           np;
 
         if (isError) {
-          // TODO
+          logWarning('plugin deactivated due to previous error - skipping action command');
           return Agtk.constants.actionCommands.commandBehavior.CommandBehaviorNext;
         }
 
@@ -103,46 +104,6 @@
 
         return Agtk.constants.actionCommands.commandBehavior.CommandBehaviorNext;
       }
-    },
-    /**
-     * @returns {boolean}
-     */
-    isEditor = function () {
-      return !Agtk || typeof Agtk.log !== 'function';
-    },
-    /**
-     * @param paramValue Parameter values to normalize.
-     * @param defaults Default parameter values available.
-     * @returns {Record<number, import("type-fest").JsonValue>}
-     */
-    normalizeParameters = function (
-      /** @type {import("pgmmv-types/lib/agtk/plugins/plugin").AgtkParameterValue[]} */
-      paramValue,
-      /** @type {import("pgmmv-types/lib/agtk/plugins/plugin/parameter").AgtkParameter[]} */
-      defaults
-    ) {
-      /** @type {Record<number,import("type-fest").JsonValue>} */
-      var normalized = {},
-        /** @type {number} */
-        len = defaults.length,
-        /** @type {number} */
-        i = 0,
-        /** @type {import("pgmmv-types/lib/agtk/plugins/plugin/parameter").AgtkParameter|import("pgmmv-types/lib/agtk/plugins/plugin").AgtkParameterValue} */
-        p;
-
-      for (; i < len; ++i) {
-        p = defaults[i];
-        normalized[p.id] = p.type === 'Json' ? JSON.stringify(p.defaultValue) : p.defaultValue;
-      }
-
-      len = paramValue.length;
-
-      for (i = 0; i < len; ++i) {
-        p = paramValue[i];
-        normalized[p.id] = p.value;
-      }
-
-      return normalized;
     },
     /** @const */
     kStorageFilename = 'kt_store.json',
@@ -244,6 +205,57 @@
     isInternalDataLoaded = false,
     /** @type {boolean} */
     isError = false,
+    /**
+     * @returns {boolean}
+     */
+    isEditor = function () {
+      return !Agtk || typeof Agtk.log !== 'function';
+    },
+    /**
+     * @param paramValue {import("pgmmv-types/lib/agtk/plugins/plugin").AgtkParameterValue[]} Parameter values to normalize.
+     * @param defaults {import("pgmmv-types/lib/agtk/plugins/plugin/parameter").AgtkParameter[]} Default parameter values available.
+     * @returns {Record<number, import("type-fest").JsonValue>}
+     */
+    normalizeParameters = function (paramValue, defaults) {
+      /** @type {Record<number,import("type-fest").JsonValue>} */
+      var normalized = {},
+        /** @type {number} */
+        len = defaults.length,
+        /** @type {number} */
+        i = 0,
+        /** @type {import("pgmmv-types/lib/agtk/plugins/plugin/parameter").AgtkParameter|import("pgmmv-types/lib/agtk/plugins/plugin").AgtkParameterValue} */
+        p;
+
+      for (; i < len; ++i) {
+        p = defaults[i];
+        normalized[p.id] = p.type === 'Json' ? JSON.stringify(p.defaultValue) : p.defaultValue;
+      }
+
+      len = paramValue.length;
+
+      for (i = 0; i < len; ++i) {
+        p = paramValue[i];
+        normalized[p.id] = p.value;
+      }
+
+      return normalized;
+    },
+    /** @type {(string) => void} */
+    logError = function (msg) {
+      if (isEditor()) {
+        return;
+      }
+
+      Agtk.log('[ERROR][' + plugin.getInfo('name') + '] ' + msg);
+    },
+    /** @type {(string) => void} */
+    logWarning = function (msg) {
+      if (isEditor()) {
+        return;
+      }
+
+      Agtk.log('[WARNING][' + plugin.getInfo('name') + '] ' + msg);
+    },
     /** @type{() => {requestSave: () => void; update: () => void;}} */
     createIO = function () {
       // noinspection UnnecessaryLocalVariableJS
@@ -259,7 +271,7 @@
                   jsbResult = jsb.fileUtils.getStringFromFile(kStoragePath);
 
                   if (!cc.isString(jsbResult)) {
-                    // TODO
+                    logError('failed reading data from ' + kStoragePath);
                     isError = true;
                     return;
                   }
@@ -267,13 +279,13 @@
                   try {
                     internalData = JSON.parse(jsbResult);
                   } catch (e) {
-                    // TODO
+                    logError('failed parsing data from ' + kStoragePath);
                     isError = true;
                     return;
                   }
 
                   if (!cc.isObject(internalData)) {
-                    // TODO
+                    logError('invalid data type parsed from ' + kStoragePath);
                     isError = true;
                     return;
                   }
@@ -289,7 +301,7 @@
                   try {
                     json = JSON.stringify(internalData);
                   } catch (e) {
-                    // TODO
+                    logError('failed encoding data');
                     isError = true;
                     return;
                   }
@@ -299,7 +311,7 @@
                   jsbResult = jsb.fileUtils.writeStringToFile(json, kStoragePath);
 
                   if (!jsbResult) {
-                    // TODO
+                    logError('failed writing data to ' + kStoragePath);
                     isError = true;
                     return;
                   }
