@@ -34,7 +34,6 @@
             // Internal data managed from storage file.
             return null;
           case 'actionCommand':
-            // Do not change the order!
             return [
               saveVariableActionCommand,
               loadVariableActionCommand,
