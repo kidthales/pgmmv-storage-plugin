@@ -1,7 +1,7 @@
 {
-  "name": "@kidthales/pgmmv-plugin-template",
+  "name": "@kidthales/pgmmv-storage-plugin",
   "version": "0.1.0",
-  "description": "Plugin template for PGMMV.",
+  "description": "A storage plugin for PGMMV.",
   "license": "MIT",
   "private": true,
   "scripts": {

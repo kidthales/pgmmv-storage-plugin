@@ -1,3 +1,3 @@
-# pgmmv-plugin-template
+# pgmmv-storage-plugin
 
-Plugin template for [PGMMV](https://rpgmakerofficial.com/product/act/en/manual/01_01.html).
+A storage plugin for [PGMMV](https://rpgmakerofficial.com/product/act/en/manual/01_01.html).
