@@ -52,17 +52,28 @@
           return;
         }
 
-        // TODO
-        Agtk.log('Initialize ' + plugin.getInfo('name'));
+        io = createIO();
       },
-      finalize: function () {},
-      setParamValue: function (paramValue) {},
-      setInternal: function (data) {
+      finalize: function () {
+        io = undefined;
+      },
+      setParamValue: function () {},
+      setInternal: function () {
         // Do nothing; internal data set from storage file.
       },
       call: function () {},
-      update: function (delta) {
-        // TODO
+      update: function () {
+        if (isError) {
+          if (isShutdownMessageShown) {
+            return;
+          }
+
+          logError('deactivating plugin');
+          isShutdownMessageShown = true;
+          return;
+        }
+
+        io && io.update();
       },
       execActionCommand: function (
         actionCommandIndex,
@@ -205,6 +216,10 @@
     isInternalDataLoaded = false,
     /** @type {boolean} */
     isError = false,
+    /** @type {boolean} */
+    isShutdownMessageShown = false,
+    /** @type {{requestSave: () => void; update: () => void;}} */
+    io,
     /**
      * @returns {boolean}
      */
