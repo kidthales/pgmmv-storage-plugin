@@ -5,8 +5,7 @@ on:
     types: [published]
 
 permissions:
-  contents: read
-  packages: write
+  contents: write
 
 jobs:
   strip-comments-and-upload-to-release:
