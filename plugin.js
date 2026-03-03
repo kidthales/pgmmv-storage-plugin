@@ -1,23 +1,22 @@
-/**
+/**!
  * @file PGMMV Storage Plugin
  * @author Tristan Bonsor <kidthales@agogpixel.com>
- * @license MIT
+ * @copyright 2026 Tristan Bonsor
+ * @license {@link https://opensource.org/licenses/MIT MIT License}
  * @version 0.1.0
  */
 // noinspection ES6ConvertVarToLetConst
 (function () {
   // noinspection UnnecessaryLocalVariableJS
-  /**
-   * @type {import("pgmmv-types/lib/agtk/plugins/plugin").AgtkPlugin}
-   */
+  /** @type {import("pgmmv-types/lib/agtk/plugins/plugin").AgtkPlugin} */
   var plugin = {
-      setLocale: function (locale) {},
+      setLocale: function () {},
       getInfo: function (category) {
         switch (category) {
           case 'name':
             return 'PGMMV Storage Plugin';
           case 'description':
-            return 'Read/write switch and variable values to/from a file.';
+            return 'Save/load switch and variable values to/from a file.';
           case 'author':
             return 'Tristan Bonsor <kidthales@agogpixel.com>';
           case 'help':
@@ -46,12 +45,14 @@
             break;
         }
       },
-      initialize: function (data) {
+      initialize: function () {
         if (isEditor()) {
           return;
         }
 
-        io = createIO();
+        if (!io) {
+          io = createIO();
+        }
       },
       finalize: function () {
         io = undefined;
@@ -74,16 +75,7 @@
 
         io && io.update();
       },
-      execActionCommand: function (
-        actionCommandIndex,
-        parameter,
-        objectId,
-        instanceId,
-        actionId,
-        commandId,
-        commonActionStatus,
-        sceneId
-      ) {
+      execActionCommand: function (actionCommandIndex, parameter, objectId, instanceId) {
         /**
          * @type {import("pgmmv-types/lib/agtk/plugins/plugin").AgtkActionCommand}
          */
@@ -101,13 +93,13 @@
 
         switch (actionCommand.id) {
           case saveVariableActionCommand.id:
-          // TODO
+            return saveVariable(np[actionCommand.parameter[0].id], np[actionCommand.parameter[1].id], instanceId);
           case loadVariableActionCommand.id:
-          // TODO
+            return loadVariable(np[actionCommand.parameter[0].id], np[actionCommand.parameter[1].id], instanceId);
           case saveSwitchActionCommand.id:
-          // TODO
+            return saveSwitch(np[actionCommand.parameter[0].id], np[actionCommand.parameter[1].id], instanceId);
           case loadSwitchActionCommand.id:
-          // TODO
+            return loadSwitch(np[actionCommand.parameter[0].id], np[actionCommand.parameter[1].id], instanceId);
           default:
             break;
         }
@@ -117,6 +109,10 @@
     },
     /** @const */
     kStorageFilename = 'kt_store.json',
+    /** @const */
+    kVariableAccessorType = 0,
+    /** @const */
+    kSwitchAccessorType = 1,
     /** @type {import("pgmmv-types/lib/agtk/plugins/plugin").AgtkActionCommand} */
     saveVariableActionCommand = {
       id: 0,
@@ -220,39 +216,226 @@
     /** @type {{requestSave: () => void; update: () => void;}} */
     io,
     /**
-     * @returns {boolean}
+     * @param variableObjectId {
+     *   import("pgmmv-types/lib/agtk/constants/switch-variable-objects").AgtkSwitchVariableObjects['ProjectCommon'] |
+     *   import("pgmmv-types/lib/agtk/constants/switch-variable-objects").AgtkSwitchVariableObjects['SelfObject'] |
+     *   import("pgmmv-types/lib/agtk/constants/switch-variable-objects").AgtkSwitchVariableObjects['ParentObject']
+     * }
+     * @param variableId {number}
+     * @param instanceId {number}
+     * @returns {import("pgmmv-types/lib/agtk/constants/action-commands/command-behavior").AgtkCommandBehavior['CommandBehaviorNext']}
      */
-    isEditor = function () {
-      return !Agtk || typeof Agtk.log !== 'function';
+    saveVariable = function (variableObjectId, variableId, instanceId) {
+      var source = resolveSwitchVariableObject(variableObjectId, instanceId);
+
+      if (source === Agtk.constants.actionCommands.UnsetObject) {
+        logWarning('save variable: unset variable source');
+      } else if (variableId < 1) {
+        logWarning('save variable: invalid variable ID');
+      } else {
+        setInternalData(source, variableId, 'variables');
+      }
+
+      return Agtk.constants.actionCommands.commandBehavior.CommandBehaviorNext;
     },
     /**
-     * @param paramValue {import("pgmmv-types/lib/agtk/plugins/plugin").AgtkParameterValue[]} Parameter values to normalize.
-     * @param defaults {import("pgmmv-types/lib/agtk/plugins/plugin/parameter").AgtkParameter[]} Default parameter values available.
-     * @returns {Record<number, import("type-fest").JsonValue>}
+     * @param variableObjectId {
+     *   import("pgmmv-types/lib/agtk/constants/switch-variable-objects").AgtkSwitchVariableObjects['ProjectCommon'] |
+     *   import("pgmmv-types/lib/agtk/constants/switch-variable-objects").AgtkSwitchVariableObjects['SelfObject'] |
+     *   import("pgmmv-types/lib/agtk/constants/switch-variable-objects").AgtkSwitchVariableObjects['ParentObject']
+     * }
+     * @param variableId {number}
+     * @param instanceId {number}
+     * @returns {
+     *   import("pgmmv-types/lib/agtk/constants/action-commands/command-behavior").AgtkCommandBehavior['CommandBehaviorNext'] |
+     *   import("pgmmv-types/lib/agtk/constants/action-commands/command-behavior").AgtkCommandBehavior['CommandBehaviorBlock']
+     * }
      */
-    normalizeParameters = function (paramValue, defaults) {
-      /** @type {Record<number,import("type-fest").JsonValue>} */
-      var normalized = {},
-        /** @type {number} */
-        len = defaults.length,
-        /** @type {number} */
-        i = 0,
-        /** @type {import("pgmmv-types/lib/agtk/plugins/plugin/parameter").AgtkParameter|import("pgmmv-types/lib/agtk/plugins/plugin").AgtkParameterValue} */
-        p;
+    loadVariable = function (variableObjectId, variableId, instanceId) {
+      var projectCommon = Agtk.constants.switchVariableObjects.ProjectCommon,
+        /**
+         * @type {
+         *   import("pgmmv-types/lib/agtk/object-instances/object-instance").AgtkObjectInstance |
+         *   import("pgmmv-types/lib/agtk/constants/switch-variable-objects").AgtkSwitchVariableObjects['ProjectCommon'] |
+         *   import("pgmmv-types/lib/agtk/constants/action-commands").AgtkActionCommands['UnsetObject']
+         * }
+         */
+        source,
+        /** @type {string} */
+        key;
 
-      for (; i < len; ++i) {
-        p = defaults[i];
-        normalized[p.id] = p.type === 'Json' ? JSON.stringify(p.defaultValue) : p.defaultValue;
+      if (!isInternalDataLoaded) {
+        return Agtk.constants.actionCommands.commandBehavior.CommandBehaviorBlock;
       }
 
-      len = paramValue.length;
+      source = resolveSwitchVariableObject(variableObjectId, instanceId);
 
-      for (i = 0; i < len; ++i) {
-        p = paramValue[i];
-        normalized[p.id] = p.value;
+      if (source === Agtk.constants.actionCommands.UnsetObject) {
+        logWarning('load variable: unset variable source');
+      } else if (variableId < 1) {
+        logWarning('load variable: invalid variable ID');
+      } else {
+        key = generateKey(source === projectCommon ? source : source.objectId, kVariableAccessorType, variableId);
+
+        if (internalData[key] !== undefined) {
+          // Load the variable!
+          if (source === projectCommon) {
+            Agtk.variables.get(variableId).setValue(internalData[key]);
+          } else {
+            source.execCommandSwitchVariableChange({
+              swtch: false,
+              variableObjectId: source.objectId,
+              variableQualifierId: Agtk.constants.qualifier.QualifierWhole,
+              variableId: variableId,
+              variableAssignOperator: Agtk.constants.assignments.VariableAssignOperatorSet,
+              assignValue: internalData[key]
+            });
+          }
+        }
       }
 
-      return normalized;
+      return Agtk.constants.actionCommands.commandBehavior.CommandBehaviorNext;
+    },
+    /**
+     * @param switchObjectId {
+     *   import("pgmmv-types/lib/agtk/constants/switch-variable-objects").AgtkSwitchVariableObjects['ProjectCommon'] |
+     *   import("pgmmv-types/lib/agtk/constants/switch-variable-objects").AgtkSwitchVariableObjects['SelfObject'] |
+     *   import("pgmmv-types/lib/agtk/constants/switch-variable-objects").AgtkSwitchVariableObjects['ParentObject']
+     * }
+     * @param switchId {number}
+     * @param instanceId {number}
+     * @returns {import("pgmmv-types/lib/agtk/constants/action-commands/command-behavior").AgtkCommandBehavior['CommandBehaviorNext']}
+     */
+    saveSwitch = function (switchObjectId, switchId, instanceId) {
+      var source = resolveSwitchVariableObject(switchObjectId, instanceId);
+
+      if (source === Agtk.constants.actionCommands.UnsetObject) {
+        logWarning('save switch: unset switch source');
+      } else if (switchId < 1) {
+        logWarning('save switch: invalid switch ID');
+      } else {
+        setInternalData(source, switchId, 'switches');
+      }
+
+      return Agtk.constants.actionCommands.commandBehavior.CommandBehaviorNext;
+    },
+    /**
+     * @param switchObjectId {
+     *   import("pgmmv-types/lib/agtk/constants/switch-variable-objects").AgtkSwitchVariableObjects['ProjectCommon'] |
+     *   import("pgmmv-types/lib/agtk/constants/switch-variable-objects").AgtkSwitchVariableObjects['SelfObject'] |
+     *   import("pgmmv-types/lib/agtk/constants/switch-variable-objects").AgtkSwitchVariableObjects['ParentObject']
+     * }
+     * @param switchId {number}
+     * @param instanceId {number}
+     * @returns {
+     *   import("pgmmv-types/lib/agtk/constants/action-commands/command-behavior").AgtkCommandBehavior['CommandBehaviorNext'] |
+     *   import("pgmmv-types/lib/agtk/constants/action-commands/command-behavior").AgtkCommandBehavior['CommandBehaviorBlock']
+     * }
+     */
+    loadSwitch = function (switchObjectId, switchId, instanceId) {
+      var projectCommon = Agtk.constants.switchVariableObjects.ProjectCommon,
+        /**
+         * @type {
+         *   import("pgmmv-types/lib/agtk/object-instances/object-instance").AgtkObjectInstance |
+         *   import("pgmmv-types/lib/agtk/constants/switch-variable-objects").AgtkSwitchVariableObjects['ProjectCommon'] |
+         *   import("pgmmv-types/lib/agtk/constants/action-commands").AgtkActionCommands['UnsetObject']
+         * }
+         */
+        source,
+        /** @type {string} */
+        key;
+
+      if (!isInternalDataLoaded) {
+        return Agtk.constants.actionCommands.commandBehavior.CommandBehaviorBlock;
+      }
+
+      source = resolveSwitchVariableObject(switchObjectId, instanceId);
+
+      if (source === Agtk.constants.actionCommands.UnsetObject) {
+        logWarning('load switch: unset switch source');
+      } else if (switchId < 1) {
+        logWarning('load switch: invalid switch ID');
+      } else {
+        key = generateKey(source === projectCommon ? source : source.objectId, kSwitchAccessorType, switchId);
+
+        if (internalData[key] !== undefined) {
+          // Load the switch!
+          if (source === projectCommon) {
+            Agtk.switches.get(switchId).setValue(internalData[key]);
+          } else {
+            source.execCommandSwitchVariableChange({
+              swtch: true,
+              switchObjectId: source.objectId,
+              switchQualifierId: Agtk.constants.qualifier.QualifierWhole,
+              switchId: switchId,
+              switchValue: internalData[key]
+            });
+          }
+        }
+      }
+
+      return Agtk.constants.actionCommands.commandBehavior.CommandBehaviorNext;
+    },
+    /**
+     * @param switchVariableObjectId {
+     *   import("pgmmv-types/lib/agtk/constants/switch-variable-objects").AgtkSwitchVariableObjects['ProjectCommon'] |
+     *   import("pgmmv-types/lib/agtk/constants/switch-variable-objects").AgtkSwitchVariableObjects['SelfObject'] |
+     *   import("pgmmv-types/lib/agtk/constants/switch-variable-objects").AgtkSwitchVariableObjects['ParentObject']
+     * }
+     * @param instanceId {number}
+     * @returns {
+     *   import("pgmmv-types/lib/agtk/object-instances/object-instance").AgtkObjectInstance |
+     *   import("pgmmv-types/lib/agtk/constants/switch-variable-objects").AgtkSwitchVariableObjects['ProjectCommon'] |
+     *   import("pgmmv-types/lib/agtk/constants/action-commands").AgtkActionCommands['UnsetObject']
+     * }
+     */
+    resolveSwitchVariableObject = function (switchVariableObjectId, instanceId) {
+      var instance = Agtk.objectInstances.get(instanceId),
+        pId;
+
+      switch (switchVariableObjectId) {
+        case Agtk.constants.switchVariableObjects.ProjectCommon:
+          return switchVariableObjectId;
+        case Agtk.constants.switchVariableObjects.SelfObject:
+          return instance;
+        case Agtk.constants.switchVariableObjects.ParentObject:
+          pId = instance.variables.get(Agtk.constants.objects.variables.ParentObjectInstanceIDId).getValue();
+
+          if (pId !== Agtk.constants.actionCommands.UnsetObject) {
+            return Agtk.objectInstances.get(pId);
+          }
+
+          break;
+        default:
+          break;
+      }
+
+      return Agtk.constants.actionCommands.UnsetObject;
+    },
+    /**
+     * @param switchOrVariableSource {import("pgmmv-types/lib/agtk/object-instances/object-instance").AgtkObjectInstance|import("pgmmv-types/lib/agtk/constants/switch-variable-objects").AgtkSwitchVariableObjects['ProjectCommon']}
+     * @param switchOrVariableId {number}
+     * @param type {'variables' | 'switches'}
+     */
+    setInternalData = function (switchOrVariableSource, switchOrVariableId, type) {
+      var projectCommon = Agtk.constants.switchVariableObjects.ProjectCommon,
+        key = generateKey(
+          switchOrVariableSource === projectCommon ? switchOrVariableSource : switchOrVariableSource.objectId,
+          type === 'switches' ? kSwitchAccessorType : kVariableAccessorType,
+          switchOrVariableId
+        ),
+        accessor =
+          switchOrVariableSource === projectCommon
+            ? Agtk[type].get(switchOrVariableId)
+            : switchOrVariableSource[type].get(switchOrVariableId);
+
+      internalData[key] = accessor.getValue();
+
+      io.requestSave();
+    },
+    /** @type {(objectId: number, accessorType: number, accessorId: number) => string} */
+    generateKey = function (objectId, accessorType, accessorId) {
+      return objectId + ',' + accessorType + ',' + accessorId;
     },
     /** @type {(string) => void} */
     logError = function (msg) {
@@ -400,6 +583,41 @@
         };
 
       return io;
+    },
+    /**
+     * @returns {boolean}
+     */
+    isEditor = function () {
+      return !Agtk || typeof Agtk.log !== 'function';
+    },
+    /**
+     * @param paramValue {import("pgmmv-types/lib/agtk/plugins/plugin").AgtkParameterValue[]} Parameter values to normalize.
+     * @param defaults {import("pgmmv-types/lib/agtk/plugins/plugin/parameter").AgtkParameter[]} Default parameter values available.
+     * @returns {Record<number, import("type-fest").JsonValue>}
+     */
+    normalizeParameters = function (paramValue, defaults) {
+      /** @type {Record<number,import("type-fest").JsonValue>} */
+      var normalized = {},
+        /** @type {number} */
+        len = defaults.length,
+        /** @type {number} */
+        i = 0,
+        /** @type {import("pgmmv-types/lib/agtk/plugins/plugin/parameter").AgtkParameter|import("pgmmv-types/lib/agtk/plugins/plugin").AgtkParameterValue} */
+        p;
+
+      for (; i < len; ++i) {
+        p = defaults[i];
+        normalized[p.id] = p.type === 'Json' ? JSON.stringify(p.defaultValue) : p.defaultValue;
+      }
+
+      len = paramValue.length;
+
+      for (i = 0; i < len; ++i) {
+        p = paramValue[i];
+        normalized[p.id] = p.value;
+      }
+
+      return normalized;
     };
 
   return plugin;
