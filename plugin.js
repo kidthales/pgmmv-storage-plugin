@@ -186,7 +186,7 @@
     loadSwitchActionCommand = {
       id: 3,
       name: 'Load Switch [PGMMV Storage Plugin]',
-      description: 'Load variable from storage.',
+      description: 'Load switch from storage.',
       parameter: [
         {
           id: 100,
