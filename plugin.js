@@ -53,6 +53,17 @@
         if (!io) {
           io = createIO();
         }
+
+        if (!window.kt) {
+          window.kt = {};
+        }
+
+        window.kt.storage = {
+          saveVariable: saveVariable,
+          loadVariable: loadVariable,
+          saveSwitch: saveSwitch,
+          loadSwitch: loadSwitch
+        };
       },
       finalize: function () {
         io = undefined;
