@@ -3,7 +3,7 @@
  * @author Tristan Bonsor <kidthales@agogpixel.com>
  * @copyright 2026 Tristan Bonsor
  * @license {@link https://opensource.org/licenses/MIT MIT License}
- * @version 0.1.4
+ * @version 0.1.5
  */
 // noinspection ES6ConvertVarToLetConst
 (function () {
