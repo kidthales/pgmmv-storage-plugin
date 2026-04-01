@@ -16,7 +16,7 @@
           case 'name':
             return 'PGMMV Storage Plugin';
           case 'description':
-            return 'Save/load switch and variable values to/from a file';
+            return 'Save/load switch and variable values to/from a file.';
           case 'author':
             return 'Tristan Bonsor <kidthales@agogpixel.com>';
           case 'help':

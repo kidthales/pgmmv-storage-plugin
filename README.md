@@ -5,9 +5,15 @@
 
 Save/load [PGMMV](https://rpgmakerofficial.com/product/act/en/manual/01_01.html) switch and variable values to/from a file.
 
-| Action Command | Description                 |
-| -------------- | --------------------------- |
-| Save Variable  | Save variable to storage.   |
-| Load Variable  | Load variable from storage. |
-| Save Switch    | Save switch to storage.     |
-| Load Switch    | Load switch from storage.   |
+> For usage instructions and downloads, please refer to the [documentation](https://kidthales.com/pgmmv/storage-plugin/).
+
+## Requirements
+
+- Any current [Node.js](https://nodejs.org/en/download) LTS (Long-Term Support) version.
+- A [Git](https://git-scm.com/) client.
+
+## Setup
+
+1. `git clone https://github.com/kidthales/pgmmv-storage-plugin.git`
+2. `cd pgmmv-storage-plugin`
+3. `npm install`
