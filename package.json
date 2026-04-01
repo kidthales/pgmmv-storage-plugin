@@ -1,6 +1,6 @@
 {
   "name": "@kidthales/pgmmv-storage-plugin",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Save/load PGMMV switch and variable values to/from a file.",
   "license": "MIT",
   "private": true,
