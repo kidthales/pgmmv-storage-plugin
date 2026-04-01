@@ -135,7 +135,7 @@
     saveVariableActionCommand = {
       id: 0,
       name: 'Save Variable [PGMMV Storage Plugin]',
-      description: 'Save variable to storage',
+      description: 'Save variable to storage.',
       parameter: [
         {
           id: 100,
@@ -158,7 +158,7 @@
     loadVariableActionCommand = {
       id: 1,
       name: 'Load Variable [PGMMV Storage Plugin]',
-      description: 'Load variable from storage',
+      description: 'Load variable from storage.',
       parameter: [
         {
           id: 100,
@@ -181,7 +181,7 @@
     saveSwitchActionCommand = {
       id: 2,
       name: 'Save Switch [PGMMV Storage Plugin]',
-      description: 'Save switch to storage',
+      description: 'Save switch to storage.',
       parameter: [
         {
           id: 100,
@@ -204,7 +204,7 @@
     loadSwitchActionCommand = {
       id: 3,
       name: 'Load Switch [PGMMV Storage Plugin]',
-      description: 'Load switch from storage',
+      description: 'Load switch from storage.',
       parameter: [
         {
           id: 100,
