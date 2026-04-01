@@ -21,11 +21,18 @@
             return 'Tristan Bonsor <kidthales@agogpixel.com>';
           case 'help':
             return (
+              "This plugin provides a way to save/load game data without PGMMV's file slot\n" +
+              'system. Suitable for high scores, achievements, statistics, and any other global\n' +
+              'data.\n' +
+              '\n' +
               'Values are stored in the "' +
               kStorageFilename +
-              '" file located in the directory specified by the `Agtk.settings.projectPath` value.' +
-              '\n\n' +
-              'Values from objects are mapped by object ID.'
+              '" file located in the directory specified\n' +
+              'by the `Agtk.settings.projectPath` value.\n' +
+              '\n' +
+              'Usually you will want to save/load Project Common switches and variables.\n' +
+              'However, object instance values may also be saved; these can then be loaded by\n' +
+              'other object instances of the same kind.'
             );
           case 'parameter':
             return [];
@@ -128,18 +135,18 @@
     saveVariableActionCommand = {
       id: 0,
       name: 'Save Variable [PGMMV Storage Plugin]',
-      description: 'Save variable to storage.',
+      description: 'Save variable to storage',
       parameter: [
         {
           id: 100,
-          name: 'Variable Source:',
+          name: 'Variable Source',
           type: 'SwitchVariableObjectId',
           option: ['SelfObject', 'ParentObject'],
           defaultValue: -1
         },
         {
           id: 0,
-          name: 'Variable:',
+          name: 'Variable',
           type: 'VariableId',
           referenceId: 100,
           withNewButton: true,
@@ -151,18 +158,18 @@
     loadVariableActionCommand = {
       id: 1,
       name: 'Load Variable [PGMMV Storage Plugin]',
-      description: 'Load variable from storage.',
+      description: 'Load variable from storage',
       parameter: [
         {
           id: 100,
-          name: 'Variable Source:',
+          name: 'Variable Source',
           type: 'SwitchVariableObjectId',
           option: ['SelfObject', 'ParentObject'],
           defaultValue: -1
         },
         {
           id: 0,
-          name: 'Variable:',
+          name: 'Variable',
           type: 'VariableId',
           referenceId: 100,
           withNewButton: false,
@@ -174,18 +181,18 @@
     saveSwitchActionCommand = {
       id: 2,
       name: 'Save Switch [PGMMV Storage Plugin]',
-      description: 'Save switch to storage.',
+      description: 'Save switch to storage',
       parameter: [
         {
           id: 100,
-          name: 'Switch Source:',
+          name: 'Switch Source',
           type: 'SwitchVariableObjectId',
           option: ['SelfObject', 'ParentObject'],
           defaultValue: -1
         },
         {
           id: 0,
-          name: 'Switch:',
+          name: 'Switch',
           type: 'SwitchId',
           referenceId: 100,
           withNewButton: true,
@@ -197,18 +204,18 @@
     loadSwitchActionCommand = {
       id: 3,
       name: 'Load Switch [PGMMV Storage Plugin]',
-      description: 'Load switch from storage.',
+      description: 'Load switch from storage',
       parameter: [
         {
           id: 100,
-          name: 'Switch Source:',
+          name: 'Switch Source',
           type: 'SwitchVariableObjectId',
           option: ['SelfObject', 'ParentObject'],
           defaultValue: -1
         },
         {
           id: 0,
-          name: 'Switch:',
+          name: 'Switch',
           type: 'SwitchId',
           referenceId: 100,
           withNewButton: false,
