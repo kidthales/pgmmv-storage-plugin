@@ -5,7 +5,7 @@
 
 Save/load [PGMMV](https://rpgmakerofficial.com/product/act/en/manual/01_01.html) switch and variable values to/from a file.
 
-> For usage instructions and downloads, please refer to the [documentation](https://kidthales.com/pgmmv/storage-plugin/).
+> For usage instructions and downloads, please refer to the **[DOCUMENTATION](https://kidthales.com/pgmmv/storage-plugin/)**.
 
 ## Requirements
 
