@@ -256,6 +256,14 @@
   var io;
 
   /**
+   * @param {number} id
+   * @returns {boolean}
+   */
+  var isValidId = function (id) {
+    return typeof id === 'number' && isFinite(id) && id >= 1;
+  };
+
+  /**
    * @param {import("@kidthales/pgmmv-types").Agtk['constants']['switchVariableObjects']['ProjectCommon' | 'SelfObject' | 'ParentObject'] | import("@kidthales/pgmmv-types").Agtk['constants']['actionCommands']['UnsetObject']} variableObjectId
    * @param {number} variableId
    * @param {number} instanceId
@@ -266,7 +274,7 @@
 
     if (source === Agtk.constants.actionCommands.UnsetObject) {
       logWarning('save variable: unset variable source');
-    } else if (variableId < 1) {
+    } else if (!isValidId(variableId)) {
       logWarning('save variable: invalid variable ID');
     } else {
       setInternalData(source, variableId, 'variables');
@@ -300,7 +308,7 @@
 
     if (source === Agtk.constants.actionCommands.UnsetObject) {
       logWarning('load variable: unset variable source');
-    } else if (variableId < 1) {
+    } else if (!isValidId(variableId)) {
       logWarning('load variable: invalid variable ID');
     } else {
       key = generateKey(source === projectCommon ? source : source.objectId, kVariableAccessorType, variableId);
@@ -350,7 +358,7 @@
 
     if (source === Agtk.constants.actionCommands.UnsetObject) {
       logWarning('save switch: unset switch source');
-    } else if (switchId < 1) {
+    } else if (!isValidId(switchId)) {
       logWarning('save switch: invalid switch ID');
     } else {
       setInternalData(source, switchId, 'switches');
@@ -384,7 +392,7 @@
 
     if (source === Agtk.constants.actionCommands.UnsetObject) {
       logWarning('load switch: unset switch source');
-    } else if (switchId < 1) {
+    } else if (!isValidId(switchId)) {
       logWarning('load switch: invalid switch ID');
     } else {
       key = generateKey(source === projectCommon ? source : source.objectId, kSwitchAccessorType, switchId);
