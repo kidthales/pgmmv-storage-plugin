@@ -14,6 +14,13 @@ module.exports = [
     }
   },
   {
+    files: ['scripts/**/*.mjs'],
+    languageOptions: {
+      ecmaVersion: 'latest',
+      sourceType: 'module'
+    }
+  },
+  {
     files: ['plugin.js'],
     languageOptions: {
       ecmaVersion: 5,
