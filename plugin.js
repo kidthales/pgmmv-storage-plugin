@@ -260,7 +260,7 @@
    * @returns {boolean}
    */
   var isValidId = function (id) {
-    return typeof id === 'number' && isFinite(id) && id >= 1;
+    return typeof id === 'number' && isFinite(id) && id >= 1 && id % 1 === 0;
   };
 
   /**
@@ -298,7 +298,9 @@
       /** @type {unknown} */
       val,
       /** @type {number} */
-      numVal;
+      numVal,
+      /** @type {ReturnType<import("@kidthales/pgmmv-types").Agtk['variables']['get']> | null | undefined} */
+      variable;
 
     if (!isInternalDataLoaded) {
       return Agtk.constants.actionCommands.commandBehavior.CommandBehaviorBlock;
@@ -320,7 +322,13 @@
         if (!isFinite(numVal)) {
           logWarning('load variable: invalid variable value for key "' + key + '"');
         } else if (source === projectCommon) {
-          Agtk.variables.get(variableId).setValue(numVal);
+          variable = Agtk.variables.get(variableId);
+
+          if (!variable) {
+            logWarning('load variable: missing variable accessor for ID ' + variableId);
+          } else {
+            variable.setValue(numVal);
+          }
         } else {
           source.execCommandSwitchVariableChange({
             swtch: false,
@@ -382,7 +390,9 @@
       /** @type {unknown} */
       val,
       /** @type {boolean} */
-      boolVal;
+      boolVal,
+      /** @type {ReturnType<import("@kidthales/pgmmv-types").Agtk['switches']['get']> | null | undefined} */
+      swtch;
 
     if (!isInternalDataLoaded) {
       return Agtk.constants.actionCommands.commandBehavior.CommandBehaviorBlock;
@@ -410,7 +420,13 @@
 
         // Load the switch!
         if (source === projectCommon) {
-          Agtk.switches.get(switchId).setValue(boolVal);
+          swtch = Agtk.switches.get(switchId);
+
+          if (!swtch) {
+            logWarning('load switch: missing switch accessor for ID ' + switchId);
+          } else {
+            swtch.setValue(boolVal);
+          }
         } else {
           source.execCommandSwitchVariableChange({
             swtch: true,
@@ -483,7 +499,18 @@
       accessor =
         switchOrVariableSource === projectCommon
           ? Agtk[type].get(switchOrVariableId)
-          : switchOrVariableSource[type].get(switchOrVariableId);
+          : switchOrVariableSource[type]
+            ? switchOrVariableSource[type].get(switchOrVariableId)
+            : null;
+
+    if (!accessor) {
+      logWarning(
+        (type === 'switches'
+          ? 'save switch: missing switch accessor for ID '
+          : 'save variable: missing variable accessor for ID ') + switchOrVariableId
+      );
+      return;
+    }
 
     internalData[key] = accessor.getValue();
 
